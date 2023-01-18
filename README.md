@@ -1,7 +1,7 @@
 # DEM
 Discrete element modeling using MUSEN package
 
-This repository contains programs used for post-processing results of DEM-based modelling of rocks breakdown
+This repository contains programs used for post-processing results of DEM-based modelling of samples of heterogeneous material breakdown
 
 Data obtained from MUSEN: Object ID, Object geometry, Material, Activity interval, Coordinate
 
