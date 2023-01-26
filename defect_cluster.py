@@ -104,7 +104,10 @@ def make_clusters(
 
     sep = '\t'
     with open(str(Path(output_dir) / 'statistics.txt'), 'w') as sf:
-        sf.write(sep.join(['Time (end), s', 'Cluster count', 'Max size', '\n']))
+        sf.write(sep.join([
+            'Time (end), s', 'Cluster count', 'Max cluster size',
+            'Max cntr x, mm', 'Max cntr y, mm', 'Max cntr z, mm', '\n'
+            ]))
         for t, bonds in tqdm(data.items(), desc='Clustering', total=len(data)):
             with open(str(Path(output_dir) / 'cluster_{:.6f}.txt').format(t), 'w') as f:
                 f.write(sep.join(['X,mm', 'Y,mm', 'Z,mm', 'D,mm', 'N']) + '\n')
@@ -122,6 +125,7 @@ def make_clusters(
                     ax.set_label(f'Time {t}')
                     
                     max_cluster_len = 0
+                    max_cluster_center_coords = []
                     cluster_cnt = 0
                     is_large = False
 
@@ -146,16 +150,15 @@ def make_clusters(
                         ordered_labels = sorted(list(range(clustering.n_clusters_)), 
                                         key=lambda idx: clustered[idx].shape[0])
 
-                        max_cluster  = clustered[ordered_labels[-1]]
-                        max_cluster_len = max(max_cluster_len, len(max_cluster))
+                        max_cluster = clustered[ordered_labels[-1]]
                         cluster_cnt += clustering.n_clusters_
                         np.savetxt(f'{output_dir}/max_cluster_part{part}_'+'{:5f}.txt'.format(t), max_cluster,
                                     header='X\tY\tZ', comments='')
                         
-                        #center_x = [0] * len(clustering.n_clusters_) # idx -- label
-                        #center_y = [0] * len(clustering.n_clusters_)
-                        #center_z = [0] * len(clustering.n_clusters_)
-                        #diameters = [0] * len(clustering.n_clusters_)
+                        center_x  = [0] * clustering.n_clusters_ # idx -- label
+                        center_y  = [0] * clustering.n_clusters_
+                        center_z  = [0] * clustering.n_clusters_
+                        diameters = [0] * clustering.n_clusters_
 
                         for label, elements in enumerate(clustered):
                             # Calculate center of cluster
@@ -175,10 +178,10 @@ def make_clusters(
                                 key=lambda elem: (elem[0] - cx) ** 2 + (elem[1] - cy) ** 2 + (elem[2] - cz) ** 2)
                             d = ((furthest_element[0] - cx) ** 2 + (furthest_element[1] - cy) ** 2 + (furthest_element[2] - cz) ** 2) ** 0.5
 
-                            #center_x[label] = cx
-                            #center_y[label] = cy
-                            #center_z[label] = cz
-                            #diameters[label] = d
+                            center_x[label]  = cx
+                            center_y[label]  = cy
+                            center_z[label]  = cz
+                            diameters[label] = d
                             f.write(sep.join(list_to_str([cx, cy, cz, d, clustered[label].shape[0]])) + '\n')
 
                             if label in ordered_labels[-num_clusters_to_show:]:
@@ -196,6 +199,15 @@ def make_clusters(
                                              clustered[label][vertices_sorted, 1],
                                              clustered[label][vertices_sorted, 2])
 
+                            if label == ordered_labels[-1]:
+                                max_cluster_len = len(max_cluster)
+                                max_cluster_center_coords = [
+                                    center_x[ordered_labels[-1]],
+                                    center_y[ordered_labels[-1]],
+                                    center_z[ordered_labels[-1]]
+                                ]
+
+
                     if show:
                         if not large:
                             plt.show()
@@ -204,7 +216,9 @@ def make_clusters(
                                 plt.show()
                     fig.savefig(f'{output_dir}/img_' + '{:5f}.png'.format(t) )
                     plt.close()
-                    sf.write(sep.join(list_to_str([t, cluster_cnt, max_cluster_len, '\n'])))
+                    sf.write(sep.join(list_to_str([
+                        t, cluster_cnt, max_cluster_len,
+                        *max_cluster_center_coords, '\n'])))
 
                 except Exception as e:
                     print(f'Exception occured: {e}')
